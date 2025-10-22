@@ -13,7 +13,7 @@ func NewCoroutine(total, limit int, op ...Option) *Coroutine {
 }
 
 type Coroutine struct {
-	Bar
+	*Bar
 	wg chans.WaitLimit
 }
 

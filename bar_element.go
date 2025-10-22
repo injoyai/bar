@@ -10,7 +10,7 @@ import (
 
 // WithPlan 进度条,例 [>>>   ]
 func WithPlan(op ...PlanOption) Format {
-	p := &plan{
+	p := &Plan{
 		prefix: "[",
 		suffix: "]",
 		style:  "■",
@@ -20,7 +20,7 @@ func WithPlan(op ...PlanOption) Format {
 	for _, v := range op {
 		v(p)
 	}
-	return func(b Bar) string {
+	return func(b *Bar) string {
 		p.current = b.Current()
 		p.total = b.Total()
 		return p.String()
@@ -29,21 +29,21 @@ func WithPlan(op ...PlanOption) Format {
 
 // WithRate 进度百分比,例 58%
 func WithRate() Format {
-	return func(b Bar) string {
+	return func(b *Bar) string {
 		return fmt.Sprintf("%0.1f%%", float64(b.Current())*100/float64(b.Total()))
 	}
 }
 
 // WithRateSize //进度数量,例 58/100
 func WithRateSize() Format {
-	return func(b Bar) string {
+	return func(b *Bar) string {
 		return fmt.Sprintf("%d/%d", b.Current(), b.Total())
 	}
 }
 
 // WithRateSizeUnit 进度数量带单位,例 58B/100B
 func WithRateSizeUnit() Format {
-	return func(b Bar) string {
+	return func(b *Bar) string {
 		currentNum, currentUnit := volume.SizeUnit(b.Current())
 		totalNum, totalUnit := volume.SizeUnit(b.Total())
 		return fmt.Sprintf("%0.1f%s/%0.1f%s", currentNum, currentUnit, totalNum, totalUnit)
@@ -79,7 +79,7 @@ func speed(cache *maps.Safe, key string, size int64, expiration time.Duration, f
 // WithSpeed //进度速度,例 13/s
 func WithSpeed(expiration ...time.Duration) Format {
 	cache := maps.NewSafe()
-	return func(b Bar) string {
+	return func(b *Bar) string {
 		return speed(cache, "Speed", b.Last(), conv.Default(time.Millisecond*500, expiration...), func(size float64) string {
 			return fmt.Sprintf("%0.1f/s", size)
 		})
@@ -89,7 +89,7 @@ func WithSpeed(expiration ...time.Duration) Format {
 // WithSpeedUnit //进度速度带单位,例 13MB/s
 func WithSpeedUnit(expiration ...time.Duration) Format {
 	cache := maps.NewSafe()
-	return func(b Bar) string {
+	return func(b *Bar) string {
 		return speed(cache, "SpeedUnit", b.Last(), conv.Default(time.Millisecond*500, expiration...), func(size float64) string {
 			f, unit := volume.SizeUnit(int64(size))
 			return fmt.Sprintf("%0.1f%s/s", f, unit)
@@ -99,7 +99,7 @@ func WithSpeedUnit(expiration ...time.Duration) Format {
 
 // WithSpeedAvg //进度平均速度,例 13/s
 func WithSpeedAvg() Format {
-	return func(b Bar) string {
+	return func(b *Bar) string {
 		speedSize := float64(b.Current()) / time.Since(b.StartTime()).Seconds()
 		return fmt.Sprintf("%0.1f/s", speedSize)
 	}
@@ -107,7 +107,7 @@ func WithSpeedAvg() Format {
 
 // WithSpeedUnitAvg //进度平均速度带单位,例 13MB/s
 func WithSpeedUnitAvg() Format {
-	return func(b Bar) string {
+	return func(b *Bar) string {
 		speedSize := float64(b.Current()) / time.Since(b.StartTime()).Seconds()
 		f, unit := volume.SizeUnit(int64(speedSize))
 		return fmt.Sprintf("%0.1f%s/s", f, unit)
@@ -116,21 +116,21 @@ func WithSpeedUnitAvg() Format {
 
 // WithUsed 已经耗时,例 2m20s
 func WithUsed() Format {
-	return func(b Bar) string {
+	return func(b *Bar) string {
 		return time.Now().Sub(b.StartTime()).String()
 	}
 }
 
 // WithUsedSecond 已经耗时,例 600s
 func WithUsedSecond() Format {
-	return func(b Bar) string {
+	return func(b *Bar) string {
 		return fmt.Sprintf("%0.1fs", time.Now().Sub(b.StartTime()).Seconds())
 	}
 }
 
 // WithRemain 预计剩余时间 例 1m18s
 func WithRemain() Format {
-	return func(b Bar) string {
+	return func(b *Bar) string {
 		rate := float64(b.Current()) / float64(b.Total())
 		spend := time.Now().Sub(b.StartTime())
 		remain := "0s"
@@ -144,14 +144,14 @@ func WithRemain() Format {
 
 // WithCurrentSize 大小,例 58B,需传指针,不然不会变
 func WithCurrentSize(size *int64) Format {
-	return func(b Bar) string {
+	return func(b *Bar) string {
 		return volume.SizeString(*size)
 	}
 }
 
 // WithCurrentRateSizeUnit 大小,例 58B/100B,需传指针,不然不会变
 func WithCurrentRateSizeUnit(size, total *int64) Format {
-	return func(b Bar) string {
+	return func(b *Bar) string {
 		return fmt.Sprintf("%s/%s", volume.SizeString(*size), volume.SizeString(*total))
 	}
 }

@@ -7,7 +7,9 @@ import (
 	"strings"
 )
 
-type plan struct {
+type PlanOption func(p *Plan)
+
+type Plan struct {
 	prefix string       //前缀 例 [
 	suffix string       //后缀 例 ]
 	style  string       //进度条风格 例 >
@@ -18,27 +20,27 @@ type plan struct {
 	total   int64 //总数
 }
 
-func (this *plan) SetPrefix(prefix string) {
+func (this *Plan) SetPrefix(prefix string) {
 	this.prefix = prefix
 }
 
-func (this *plan) SetSuffix(suffix string) {
+func (this *Plan) SetSuffix(suffix string) {
 	this.suffix = suffix
 }
 
-func (this *plan) SetStyle(style string) {
+func (this *Plan) SetStyle(style string) {
 	this.style = style
 }
 
-func (this *plan) SetWidth(width int) {
+func (this *Plan) SetWidth(width int) {
 	this.width = width
 }
 
-func (this *plan) SetColor(a color.Attribute) {
+func (this *Plan) SetColor(a color.Attribute) {
 	this.color = color.New(a)
 }
 
-func (this *plan) String() string {
+func (this *Plan) String() string {
 	lenStyle := len([]rune(this.style))
 	rate := float64(this.current) / float64(this.total)
 	count := int(float64(this.width) * rate / float64(lenStyle))

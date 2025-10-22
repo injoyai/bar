@@ -8,7 +8,7 @@ import (
 func main() {
 	x := bar.New(
 		bar.WithTotal(60),
-		bar.WithFormatDefault(func(p bar.Plan) {
+		bar.WithFormatDefault(func(p *bar.Plan) {
 			p.SetStyle("■")
 		}),
 	)
