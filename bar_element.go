@@ -29,7 +29,7 @@ func WithPlan(op ...PlanOption) Format {
 
 // WithAnimation 进度动画
 func WithAnimation() Format {
-	ls := []string{"\\", "|", "/", "-"}
+	ls := []string{"-", "\\", "|", "/"}
 	return func(b *Bar) string {
 		return fmt.Sprintf("[%s]", ls[int(b.Current())%len(ls)])
 	}
