@@ -35,6 +35,14 @@ func WithAnimation() Format {
 	}
 }
 
+// WithAnimationMoon 进度动画
+func WithAnimationMoon() Format {
+	ls := []string{"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘", "🌑"}
+	return func(b *Bar) string {
+		return fmt.Sprintf("%s", ls[int(b.Current())%len(ls)])
+	}
+}
+
 // WithRate 进度百分比,例 58%
 func WithRate() Format {
 	return func(b *Bar) string {
