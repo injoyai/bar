@@ -83,6 +83,12 @@ func WithWriter(writer io.Writer) Option {
 	}
 }
 
+func WithFinal(f Option) Option {
+	return func(b *Bar) {
+		b.OnFinal(f)
+	}
+}
+
 // WithAutoFlush 设置后自动刷新
 func WithAutoFlush() Option {
 	return func(b *Bar) {
@@ -128,6 +134,9 @@ func New(op ...Option) *Bar {
 	b.SetCloseFunc(func(err error) error {
 		if b.writer != nil {
 			b.writer.Write([]byte("\n"))
+		}
+		if b.onFinal != nil {
+			b.onFinal(b)
 		}
 		return nil
 	})
@@ -230,7 +239,7 @@ func (this *Bar) OnSet(f func()) {
 	this.onSet = f
 }
 
-func (this *Bar) OnFinal(f func(b *Bar)) {
+func (this *Bar) OnFinal(f Option) {
 	this.onFinal = f
 }
 
@@ -289,9 +298,6 @@ func (this *Bar) Flush() (closed bool) {
 	}
 	this.writer.Write([]byte(s))
 	if this.current >= this.total {
-		if this.onFinal != nil {
-			this.onFinal(this)
-		}
 		this.Close()
 	}
 	return this.Closed()
