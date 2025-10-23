@@ -27,20 +27,28 @@ func WithPlan(op ...PlanOption) Format {
 	}
 }
 
-// WithAnimation 进度动画
-func WithAnimation() Format {
-	ls := []string{"-", "\\", "|", "/"}
+// WithText 文本
+func WithText(text string) Format {
 	return func(b *Bar) string {
-		return fmt.Sprintf("[%s]", ls[int(b.Current())%len(ls)])
+		return text
 	}
 }
 
-// WithAnimationMoon 进度动画
-func WithAnimationMoon() Format {
-	ls := []string{"🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘", "🌑"}
+// WithAnimation 进度动画
+func WithAnimation(ls []string) Format {
 	return func(b *Bar) string {
 		return fmt.Sprintf("%s", ls[int(b.Current())%len(ls)])
 	}
+}
+
+// WithAnimationSnake 进度动画: 贪吃蛇
+func WithAnimationSnake() Format {
+	return WithAnimation(Animations[11])
+}
+
+// WithAnimationMoon 进度动画: 月亮
+func WithAnimationMoon() Format {
+	return WithAnimation(Animations[70])
 }
 
 // WithRate 进度百分比,例 58%
