@@ -31,6 +31,15 @@ func WithTotal(total int64) Option {
 	}
 }
 
+// WithOption 批量设置
+func WithOption(op ...Option) Option {
+	return func(b *Bar) {
+		for _, v := range op {
+			v(b)
+		}
+	}
+}
+
 // WithFormat 设置样式
 func WithFormat(fs ...Format) Option {
 	return func(b *Bar) {

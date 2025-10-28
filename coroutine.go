@@ -3,9 +3,11 @@ package bar
 import "github.com/injoyai/base/chans"
 
 func NewCoroutine(total, limit int, op ...Option) *Coroutine {
-	b := New(op...)
-	b.SetTotal(int64(total))
-	b.Flush()
+	b := New(
+		WithTotal(int64(total)),
+		WithOption(op...),
+		WithFlush(),
+	)
 	return &Coroutine{
 		Bar: b,
 		wg:  chans.NewWaitLimit(limit),
