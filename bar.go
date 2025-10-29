@@ -350,19 +350,26 @@ func (this *Bar) Copy(w io.Writer, r io.Reader) (int64, error) {
 
 func (this *Bar) CopyN(w io.Writer, r io.Reader, bufSize int64) (int64, error) {
 	buff := bufio.NewReader(r)
-	reader := &Read{
+	reader := &Reader{
 		Reader: buff,
 		Bar:    this,
 	}
 	return io.CopyN(w, reader, bufSize)
 }
 
-type Read struct {
+func NewReader(r io.Reader, b *Bar) *Reader {
+	return &Reader{
+		Reader: r,
+		Bar:    b,
+	}
+}
+
+type Reader struct {
 	io.Reader
 	*Bar
 }
 
-func (this *Read) Read(p []byte) (n int, err error) {
+func (this *Reader) Read(p []byte) (n int, err error) {
 	n, err = this.Reader.Read(p)
 	this.Bar.Add(int64(n))
 	this.Bar.Flush()
