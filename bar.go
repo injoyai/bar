@@ -176,14 +176,14 @@ type Bar struct {
 
 func (this *Bar) Add(n int64) {
 	this.mu.Lock()
-	defer this.mu.Unlock()
-
 	this.current = this.current + n
 	if this.current > this.total {
 		this.current = this.total
 	}
 	this.last = n
 	this.lastTime = time.Now()
+	this.mu.Unlock()
+
 	if this.onSet != nil {
 		this.onSet()
 	}
