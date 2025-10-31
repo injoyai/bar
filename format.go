@@ -12,7 +12,7 @@ import (
 func WithPlan(op ...PlanOption) Format {
 	p := NewPlan(op...)
 	return func(b *Bar) string {
-		return p.String(b.Current(), b.Total())
+		return p.String(b.Rate())
 	}
 }
 

@@ -270,6 +270,13 @@ func (this *Bar) Total() int64 {
 	return this.total
 }
 
+func (this *Bar) Rate() float64 {
+	if this.total == 0 {
+		return 0
+	}
+	return float64(this.current) / float64(this.total)
+}
+
 func (this *Bar) StartTime() time.Time {
 	return this.startTime
 }

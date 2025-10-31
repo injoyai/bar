@@ -57,23 +57,19 @@ func (this *Plan) SetColor(a color.Attribute) {
 	this.color = color.New(a)
 }
 
-func (p *Plan) String(current, total int64) string {
-	if total <= 0 {
-		return fmt.Sprintf("%s%s%s", p.prefix, strings.Repeat(" ", p.width), p.suffix)
-	}
+func (this *Plan) String(rate float64) string {
 
-	//计算当前进度
-	rate := float64(current) / float64(total)
+	//归一化
 	rate = conv.Range(rate, 0, 1)
 
 	//进度条的数量
-	count := int(float64(p.width) * rate)
+	count := int(float64(this.width) * rate)
 	if count < 0 {
 		count = 0
 	}
 
 	//处理样式
-	styleRunes := []rune(p.style)
+	styleRunes := []rune(this.style)
 	lenStyle := len(styleRunes)
 	if lenStyle == 0 {
 		styleRunes = []rune{'■'}
@@ -85,21 +81,21 @@ func (p *Plan) String(current, total int64) string {
 		b.WriteRune(styleRunes[i%lenStyle])
 	}
 
-	paddingRunes := []rune(p.padding)
+	paddingRunes := []rune(this.padding)
 	lenPadding := len(paddingRunes)
 	if lenPadding == 0 {
 		paddingRunes = []rune{' '}
 		lenPadding = 1
 	}
 	// 补全剩余部分（未完成区域）
-	for i := count; i < p.width; i++ {
+	for i := count; i < this.width; i++ {
 		b.WriteRune(paddingRunes[i%lenPadding])
 	}
 
-	barStr := fmt.Sprintf("%s%s%s", p.prefix, b.String(), p.suffix)
+	barStr := fmt.Sprintf("%s%s%s", this.prefix, b.String(), this.suffix)
 
-	if p.color != nil {
-		barStr = p.color.Sprint(barStr)
+	if this.color != nil {
+		barStr = this.color.Sprint(barStr)
 	}
 	return barStr
 }
