@@ -10,6 +10,7 @@ func main() {
 		bar.WithTotal(60),
 		bar.WithFormatDefault(func(p *bar.Plan) {
 			p.SetStyle("■")
+			p.SetPadding(".")
 		}),
 	)
 	for {

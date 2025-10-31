@@ -9,15 +9,28 @@ import (
 
 type PlanOption func(p *Plan)
 
-type Plan struct {
-	prefix string       //前缀 例 [
-	suffix string       //后缀 例 ]
-	style  string       //进度条风格 例 >
-	color  *color.Color //整体颜色
-	width  int          //宽度
+func NewPlan(op ...PlanOption) *Plan {
+	p := &Plan{
+		prefix:  "[",
+		suffix:  "]",
+		style:   "■",
+		padding: " ",
+		color:   nil,
+		width:   50,
+	}
+	for _, o := range op {
+		o(p)
+	}
+	return p
+}
 
-	current int64 //当前
-	total   int64 //总数
+type Plan struct {
+	prefix  string       //前缀 例 [
+	suffix  string       //后缀 例 ]
+	style   string       //进度条风格 例 ■
+	padding string       //填充 例 .
+	color   *color.Color //整体颜色
+	width   int          //宽度
 }
 
 func (this *Plan) SetPrefix(prefix string) {
@@ -32,6 +45,10 @@ func (this *Plan) SetStyle(style string) {
 	this.style = style
 }
 
+func (this *Plan) SetPadding(padding string) {
+	this.padding = padding
+}
+
 func (this *Plan) SetWidth(width int) {
 	this.width = width
 }
@@ -40,20 +57,49 @@ func (this *Plan) SetColor(a color.Attribute) {
 	this.color = color.New(a)
 }
 
-func (this *Plan) String() string {
-	lenStyle := len([]rune(this.style))
-	rate := float64(this.current) / float64(this.total)
-	count := int(float64(this.width) * rate / float64(lenStyle))
-	count = conv.Select(count < 0, 0, count)
-	nowWidth := strings.Repeat(this.style, count)
-	if rate == 1 {
-		for i := 0; len([]rune(nowWidth)) < this.width; i++ {
-			nowWidth += string([]rune(this.style)[i%lenStyle])
-		}
+func (p *Plan) String(current, total int64) string {
+	if total <= 0 {
+		return fmt.Sprintf("%s%s%s", p.prefix, strings.Repeat(" ", p.width), p.suffix)
 	}
-	barStr := fmt.Sprintf(fmt.Sprintf("%s%%-%ds%s", this.prefix, this.width, this.suffix), nowWidth)
-	if this.color != nil {
-		barStr = this.color.Sprint(barStr)
+
+	//计算当前进度
+	rate := float64(current) / float64(total)
+	rate = conv.Range(rate, 0, 1)
+
+	//进度条的数量
+	count := int(float64(p.width) * rate)
+	if count < 0 {
+		count = 0
+	}
+
+	//处理样式
+	styleRunes := []rune(p.style)
+	lenStyle := len(styleRunes)
+	if lenStyle == 0 {
+		styleRunes = []rune{'■'}
+		lenStyle = 1
+	}
+
+	var b strings.Builder
+	for i := 0; i < count; i++ {
+		b.WriteRune(styleRunes[i%lenStyle])
+	}
+
+	paddingRunes := []rune(p.padding)
+	lenPadding := len(paddingRunes)
+	if lenPadding == 0 {
+		paddingRunes = []rune{' '}
+		lenPadding = 1
+	}
+	// 补全剩余部分（未完成区域）
+	for i := count; i < p.width; i++ {
+		b.WriteRune(paddingRunes[i%lenPadding])
+	}
+
+	barStr := fmt.Sprintf("%s%s%s", p.prefix, b.String(), p.suffix)
+
+	if p.color != nil {
+		barStr = p.color.Sprint(barStr)
 	}
 	return barStr
 }

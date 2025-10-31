@@ -10,20 +10,9 @@ import (
 
 // WithPlan 进度条,例 [>>>   ]
 func WithPlan(op ...PlanOption) Format {
-	p := &Plan{
-		prefix: "[",
-		suffix: "]",
-		style:  "■",
-		color:  nil,
-		width:  50,
-	}
-	for _, v := range op {
-		v(p)
-	}
+	p := NewPlan(op...)
 	return func(b *Bar) string {
-		p.current = b.Current()
-		p.total = b.Total()
-		return p.String()
+		return p.String(b.Current(), b.Total())
 	}
 }
 
