@@ -23,6 +23,27 @@ func WithText(text string) Format {
 	}
 }
 
+// WithTime 时间
+func WithTime() Format {
+	return func(b *Bar) string {
+		return time.Now().Format(time.TimeOnly)
+	}
+}
+
+// WithDate 日期
+func WithDate() Format {
+	return func(b *Bar) string {
+		return time.Now().Format(time.DateOnly)
+	}
+}
+
+// WithDateTime 日期时间
+func WithDateTime() Format {
+	return func(b *Bar) string {
+		return time.Now().Format(time.DateTime)
+	}
+}
+
 // WithAnimation 进度动画
 func WithAnimation(ls []string) Format {
 	return func(b *Bar) string {
