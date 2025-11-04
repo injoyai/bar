@@ -17,9 +17,9 @@ func WithPlan(op ...PlanOption) Format {
 }
 
 // WithText 文本
-func WithText(text string) Format {
+func WithText(a ...any) Format {
 	return func(b *Bar) string {
-		return text
+		return fmt.Sprint(a...)
 	}
 }
 
