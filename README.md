@@ -24,6 +24,7 @@ func main() {
 ```go
 import (
     "github.com/injoyai/bar"
+	"time"
 )
 
 func main() {
