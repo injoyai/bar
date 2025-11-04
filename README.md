@@ -27,11 +27,13 @@ import (
 )
 
 func main() {
+    // 协程数量
+    limit:=2
     // 能自动增长,和并发数量控制
-    b := bar.NewCoroutine(100,2)
+    b := bar.NewCoroutine(100,limit)
     for i := 0; i < 100; i++ {
         b.Go(func () {
-            <time.After(time.Second * 1)
+            <-time.After(time.Second * 1)
         })
     }
     b.Wait()
