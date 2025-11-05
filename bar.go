@@ -71,6 +71,13 @@ func WithFormatDefaultUnit(op ...PlanOption) Option {
 	}
 }
 
+// WithFormatSplit 设置分隔符
+func WithFormatSplit(split string) Option {
+	return func(b *Bar) {
+		b.SetFormatSplit(split)
+	}
+}
+
 // WithPrefix 设置前缀
 func WithPrefix(prefix string) Option {
 	return func(b *Bar) {
@@ -134,11 +141,12 @@ func WithFlush() Option {
 
 func New(op ...Option) *Bar {
 	b := &Bar{
-		current:   0,
-		total:     0,
-		writer:    os.Stdout,
-		Closer:    safe.NewCloser(),
-		startTime: time.Now(),
+		current:     0,
+		total:       0,
+		formatSplit: "  ",
+		writer:      os.Stdout,
+		startTime:   time.Now(),
+		Closer:      safe.NewCloser(),
 	}
 	b.SetCloseFunc(func(err error) error {
 		if b.writer != nil {
@@ -157,21 +165,22 @@ func New(op ...Option) *Bar {
 }
 
 type Bar struct {
-	current      int64        //当前数量
-	total        int64        //总数量
-	prefix       string       //前缀
-	suffix       string       //后缀
-	format       Format       //格式化
-	writer       io.Writer    //输出
-	*safe.Closer              //closer
-	onSet        func()       //设置事件
-	onFinal      func(b *Bar) //完成事件
+	current     int64        //当前数量
+	total       int64        //总数量
+	prefix      string       //前缀
+	suffix      string       //后缀
+	format      Format       //格式化
+	formatSplit string       //分隔符
+	writer      io.Writer    //输出
+	onSet       func()       //设置事件
+	onFinal     func(b *Bar) //完成事件
 
-	startTime time.Time //开始时间
-	last      int64     //最后一次增加的值
-	lastTime  time.Time //最后一次时间
+	startTime time.Time  //开始时间
+	last      int64      //最后一次增加的值
+	lastTime  time.Time  //最后一次时间
+	mu        sync.Mutex //并发锁
 
-	mu sync.Mutex
+	*safe.Closer //closer
 }
 
 func (this *Bar) Add(n int64) {
@@ -226,10 +235,14 @@ func (this *Bar) SetFormat(fs ...Format) {
 			for i, v := range fs {
 				ls[i] = v(b)
 			}
-			return strings.Join(ls, "  ")
+			return strings.Join(ls, this.formatSplit)
 		}
 
 	}
+}
+
+func (this *Bar) SetFormatSplit(split string) {
+	this.formatSplit = split
 }
 
 func (this *Bar) SetPrefix(prefix string) {
