@@ -176,15 +176,15 @@ func WithRemain() Format {
 	}
 }
 
-// WithCurrentSize 大小,例 58B,需传指针,不然不会变
-func WithCurrentSize(size *int64) Format {
+// WithCustomSize 大小,例 58B,需传指针,不然不会变
+func WithCustomSize(size *int64) Format {
 	return func(b *Bar) string {
 		return volume.SizeString(*size)
 	}
 }
 
-// WithCurrentRateSizeUnit 大小,例 58B/100B,需传指针,不然不会变
-func WithCurrentRateSizeUnit(size, total *int64) Format {
+// WithCustomRateSizeUnit 大小,例 58B/100B,需传指针,不然不会变
+func WithCustomRateSizeUnit(size, total *int64) Format {
 	return func(b *Bar) string {
 		return fmt.Sprintf("%s/%s", volume.SizeString(*size), volume.SizeString(*total))
 	}
