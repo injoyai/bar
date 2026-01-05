@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/injoyai/bar"
 	"time"
+
+	"github.com/injoyai/bar"
 )
 
 func main() {

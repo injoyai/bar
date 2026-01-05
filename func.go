@@ -1,15 +1,16 @@
 package bar
 
 import (
-	"github.com/injoyai/bar/internal/m3u8"
-	"github.com/injoyai/bar/internal/util"
-	"github.com/injoyai/base/chans"
 	"io"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync/atomic"
+
+	"github.com/injoyai/bar/internal/m3u8"
+	"github.com/injoyai/bar/internal/util"
+	"github.com/injoyai/base/chans"
 )
 
 func Copy(w io.Writer, r io.Reader, total int64) (int64, error) {

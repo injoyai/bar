@@ -2,9 +2,15 @@ package bar
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/fatih/color"
 	"github.com/injoyai/conv"
-	"strings"
+)
+
+const (
+	DefaultStyle   = "■"
+	DefaultPadding = " "
 )
 
 type PlanOption func(p *Plan)
@@ -13,8 +19,8 @@ func NewPlan(op ...PlanOption) *Plan {
 	p := &Plan{
 		prefix:  "[",
 		suffix:  "]",
-		style:   "■",
-		padding: " ",
+		style:   DefaultStyle,
+		padding: DefaultPadding,
 		color:   nil,
 		width:   50,
 	}
@@ -72,7 +78,7 @@ func (this *Plan) String(rate float64) string {
 	styleRunes := []rune(this.style)
 	lenStyle := len(styleRunes)
 	if lenStyle == 0 {
-		styleRunes = []rune{'■'}
+		styleRunes = []rune(DefaultStyle)
 		lenStyle = 1
 	}
 
@@ -84,7 +90,7 @@ func (this *Plan) String(rate float64) string {
 	paddingRunes := []rune(this.padding)
 	lenPadding := len(paddingRunes)
 	if lenPadding == 0 {
-		paddingRunes = []rune{' '}
+		paddingRunes = []rune(DefaultPadding)
 		lenPadding = 1
 	}
 	// 补全剩余部分（未完成区域）

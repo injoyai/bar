@@ -2,10 +2,11 @@ package bar
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/injoyai/bar/internal/volume"
 	"github.com/injoyai/base/maps"
 	"github.com/injoyai/conv"
-	"time"
 )
 
 // WithPlan 进度条,例 [>>>   ]

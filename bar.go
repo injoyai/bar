@@ -3,15 +3,16 @@ package bar
 import (
 	"bufio"
 	"fmt"
-	"github.com/injoyai/bar/internal/util"
-	"github.com/injoyai/base/safe"
-	"github.com/injoyai/conv"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/injoyai/bar/internal/util"
+	"github.com/injoyai/base/safe"
+	"github.com/injoyai/conv"
 )
 
 type Option func(b *Bar)

@@ -1,11 +1,11 @@
 module github.com/injoyai/bar
 
-go 1.20
+go 1.23
 
 require (
 	github.com/fatih/color v1.18.0
 	github.com/grafov/m3u8 v0.12.1
-	github.com/injoyai/base v1.2.17
+	github.com/injoyai/base v1.2.20
 	github.com/injoyai/conv v1.2.5
 	golang.org/x/net v0.30.0
 	golang.org/x/text v0.19.0
