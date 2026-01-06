@@ -55,7 +55,7 @@ func WithFormatDefault(op ...PlanOption) Option {
 			WithPlan(op...),
 			WithRateSize(),
 			WithSpeed(),
-			WithRemain(),
+			WithRemain2(),
 		)
 	}
 }
@@ -67,7 +67,7 @@ func WithFormatDefaultUnit(op ...PlanOption) Option {
 			WithPlan(op...),
 			WithRateSizeUnit(),
 			WithSpeedUnit(),
-			WithRemain(),
+			WithRemain2(),
 		)
 	}
 }
@@ -109,7 +109,7 @@ func WithFinal(f Option) Option {
 // WithAutoFlush 设置后自动刷新
 func WithAutoFlush() Option {
 	return func(b *Bar) {
-		b.OnSet(func() {
+		b.OnSet(func(b *Bar) {
 			b.Flush()
 		})
 	}
@@ -166,15 +166,15 @@ func New(op ...Option) *Bar {
 }
 
 type Bar struct {
-	current     int64        //当前数量
-	total       int64        //总数量
-	prefix      string       //前缀
-	suffix      string       //后缀
-	format      Format       //格式化
-	formatSplit string       //分隔符
-	writer      io.Writer    //输出
-	onSet       func()       //设置事件
-	onFinal     func(b *Bar) //完成事件
+	current     int64          //当前数量
+	total       int64          //总数量
+	prefix      string         //前缀
+	suffix      string         //后缀
+	format      Format         //格式化
+	formatSplit string         //分隔符
+	writer      io.Writer      //输出
+	onSet       []func(b *Bar) //设置事件
+	onFinal     func(b *Bar)   //完成事件
 
 	startTime time.Time  //开始时间
 	last      int64      //最后一次增加的值
@@ -194,8 +194,10 @@ func (this *Bar) Add(n int64) {
 	this.lastTime = time.Now()
 	this.mu.Unlock()
 
-	if this.onSet != nil {
-		this.onSet()
+	for _, f := range this.onSet {
+		if f != nil {
+			f(this)
+		}
 	}
 }
 
@@ -213,8 +215,11 @@ func (this *Bar) SetCurrent(current int64) {
 	this.last = current - this.current
 	this.lastTime = time.Now()
 	this.current = current
-	if this.onSet != nil {
-		this.onSet()
+
+	for _, f := range this.onSet {
+		if f != nil {
+			f(this)
+		}
 	}
 }
 
@@ -258,8 +263,8 @@ func (this *Bar) SetWriter(w io.Writer) {
 	this.writer = w
 }
 
-func (this *Bar) OnSet(f func()) {
-	this.onSet = f
+func (this *Bar) OnSet(f func(b *Bar)) {
+	this.onSet = append(this.onSet, f)
 }
 
 func (this *Bar) OnFinal(f Option) {

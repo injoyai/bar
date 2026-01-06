@@ -2,6 +2,7 @@ package bar
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/injoyai/bar/internal/volume"
@@ -163,16 +164,59 @@ func WithUsedSecond() Format {
 	}
 }
 
-// WithRemain 预计剩余时间 例 1m18s
+// WithRemain 预计剩余时间(根据所有数据来计算) 例 1m18s
 func WithRemain() Format {
 	return func(b *Bar) string {
 		rate := float64(b.Current()) / float64(b.Total())
 		spend := time.Now().Sub(b.StartTime())
-		remain := "0s"
+		remain := "-"
 		if rate > 0 {
 			sub := time.Duration(float64(spend)/rate - float64(spend))
 			remain = (sub - sub%time.Second).String()
 		}
+		return remain
+	}
+}
+
+// WithRemain2 预计剩余时间(根据最近的几个数据来计算) 例 1m18s
+func WithRemain2(n ...int) Format {
+	type node struct {
+		current int64
+		time    time.Time
+	}
+	once := sync.Once{}
+	nodes := []*node(nil)
+	_n := conv.Default(20, n...)
+	return func(b *Bar) string {
+		once.Do(func() {
+			b.OnSet(func(b *Bar) {
+				nodes = append(nodes, &node{
+					current: b.Current(),
+					time:    b.LastTime(),
+				})
+				if len(nodes) > _n {
+					nodes = nodes[1:]
+				}
+			})
+		})
+
+		remain := "-"
+
+		if len(nodes) == 0 {
+			return remain
+		}
+
+		start, end := nodes[0], nodes[len(nodes)-1]
+		subCurrent := end.current - start.current
+		subTime := end.time.Sub(start.time)
+
+		if subCurrent > 0 {
+			avgSpeed := float64(subTime) / float64(subCurrent)            //平均速度
+			remainNumber := b.Total() - end.current                       //剩余数量
+			remainTime := time.Duration(float64(remainNumber) * avgSpeed) //剩余时间
+			remain = (remainTime - remainTime%time.Second).String()       //
+		}
+
 		return remain
 	}
 }
