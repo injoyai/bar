@@ -10,7 +10,6 @@ import (
 
 	"github.com/injoyai/bar/internal/m3u8"
 	"github.com/injoyai/bar/internal/util"
-	"github.com/injoyai/base/chans"
 )
 
 func Copy(w io.Writer, r io.Reader, total int64) (int64, error) {
@@ -27,6 +26,7 @@ func DownloadHLS(source, dir string, op ...HLSOption) error {
 		Proxy:       "",
 		Coroutine:   10,
 		ShowDetails: false,
+		Retry:       3,
 	}
 
 	for _, v := range op {
@@ -43,13 +43,13 @@ func DownloadHLS(source, dir string, op ...HLSOption) error {
 	current := int64(0)
 	total := int64(0)
 	index := int64(0)
-	b := New(
-		WithTotal(int64(len(ls))),
+	b := NewCoroutine(len(ls), cfg.Coroutine,
 		WithFormat(
 			WithPlan(),
 			WithRateSize(),
 			WithCustomRateSizeUnit(&current, &total),
-			WithRemain()),
+			WithRemain2(),
+		),
 	)
 
 	h := util.NewClient().SetTimeout(0)
@@ -63,17 +63,13 @@ func DownloadHLS(source, dir string, op ...HLSOption) error {
 		atomic.StoreInt64(&total, (current/index)*int64(len(ls)))
 		if log {
 			b.Log(u)
+			b.Flush()
 		}
-		b.Add(1)
-		b.Flush()
 	}
 
-	wg := chans.NewWaitLimit(cfg.Coroutine)
-	for _, u := range ls {
-		wg.Add()
-		go func(u string) {
-			defer wg.Done()
-
+	for i := range ls {
+		u := ls[i]
+		b.Go(func() {
 			_u, err := url.Parse(u)
 			if err != nil {
 				b.Log("[错误]", err)
@@ -95,17 +91,24 @@ func DownloadHLS(source, dir string, op ...HLSOption) error {
 				return
 			}
 
-			n, err := h.GetToFile(u, filename)
+			var n int64
+			for x := 0; x == 0 || x < cfg.Retry; x++ {
+				n, err = h.GetToFile(u, filename)
+				if err == nil {
+					break
+				}
+			}
 			if err != nil {
 				b.Log("[错误]", err)
 				return
 			}
 
 			f(u, n, cfg.ShowDetails)
-		}(u)
+		})
+
 	}
 
-	wg.Wait()
+	b.Wait()
 
 	return nil
 }
@@ -114,6 +117,7 @@ type DownloadHLSConfig struct {
 	Proxy       string
 	Coroutine   int
 	ShowDetails bool
+	Retry       int
 }
 
 type HLSOption func(c *DownloadHLSConfig)
@@ -131,6 +135,12 @@ func WithHLSCoroutine(coroutine int) HLSOption {
 func WithHLSShowDetails(b ...bool) HLSOption {
 	return func(c *DownloadHLSConfig) {
 		c.ShowDetails = len(b) == 0 || b[0]
+	}
+}
+
+func WithHLSRetry(retry int) HLSOption {
+	return func(c *DownloadHLSConfig) {
+		c.Retry = retry
 	}
 }
 

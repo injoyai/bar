@@ -4,13 +4,14 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"golang.org/x/net/proxy"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"time"
+
+	"golang.org/x/net/proxy"
 )
 
 // NewClient
@@ -94,5 +95,6 @@ func (this *Client) GetToFile(url string, filename string) (int64, error) {
 		return n, err
 	}
 	w.Close()
+	<-time.After(time.Millisecond * 100)
 	return n, os.Rename(filename+".downloading", filename)
 }
