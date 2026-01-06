@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	DefaultStyle   = "■"
+	DefaultStyle   = "#"
 	DefaultPadding = " "
 )
 
