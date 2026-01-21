@@ -184,12 +184,15 @@ func WithRemain2(n ...int) Format {
 		current int64
 		time    time.Time
 	}
+	mu := sync.Mutex{}
 	once := sync.Once{}
 	nodes := []*node(nil)
 	_n := conv.Default(20, n...)
 	return func(b *Bar) string {
 		once.Do(func() {
 			b.OnSet(func(b *Bar) {
+				mu.Lock()
+				defer mu.Unlock()
 				nodes = append(nodes, &node{
 					current: b.Current(),
 					time:    b.LastTime(),
@@ -206,7 +209,10 @@ func WithRemain2(n ...int) Format {
 			return remain
 		}
 
+		mu.Lock()
 		start, end := nodes[0], nodes[len(nodes)-1]
+		mu.Unlock()
+
 		subCurrent := end.current - start.current
 		subTime := end.time.Sub(start.time)
 
