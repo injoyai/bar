@@ -187,12 +187,10 @@ func WithRemain2(n ...int) Format {
 	mu := sync.Mutex{}
 	once := sync.Once{}
 	nodes := []*node(nil)
-	_n := 500
+
 	return func(b *Bar) string {
 		once.Do(func() {
-			if b.Total() > 5000 {
-				_n = int(b.Total() / 10)
-			}
+			_n := conv.Range(int(b.Total()/10), 500, 1000)
 			_n = conv.Default(_n, n...)
 			b.OnSet(func(b *Bar) {
 				mu.Lock()
