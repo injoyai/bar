@@ -178,9 +178,9 @@ func WithRemain() Format {
 	}
 }
 
-// WithRemain2 预计剩余时间(根据最近的几个数据来计算) 例 1m18s
+// WithRemainInterval 预计剩余时间(根据最近的几个数据来计算) 例 1m18s
 // n: 滑动窗口大小（即"最近的几次写入"），不传则在首次采样时根据 Total 自适应到 [500,1000]
-func WithRemain2(n ...int) Format {
+func WithRemainInterval(n ...int) Format {
 	type node struct {
 		current int64
 		time    time.Time

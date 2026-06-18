@@ -49,7 +49,7 @@ func DownloadHLS(source, dir string, op ...HLSOption) error {
 			WithPlan(),
 			WithRateSize(),
 			WithCustomRateSizeUnit(&current, &total),
-			WithRemain2(),
+			WithRemainInterval(),
 		),
 	)
 
