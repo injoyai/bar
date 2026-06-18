@@ -55,7 +55,7 @@ func WithFormatDefault(op ...PlanOption) Option {
 			WithPlan(op...),
 			WithRateSize(),
 			WithSpeed(),
-			WithRemain2(),
+			WithRemain(),
 		)
 	}
 }
@@ -67,7 +67,7 @@ func WithFormatDefaultUnit(op ...PlanOption) Option {
 			WithPlan(op...),
 			WithRateSizeUnit(),
 			WithSpeedUnit(),
-			WithRemain2(),
+			WithRemain(),
 		)
 	}
 }
