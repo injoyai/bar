@@ -119,7 +119,7 @@ func WithAutoFlush() Option {
 func WithIntervalFlush(interval time.Duration) Option {
 	return func(b *Bar) {
 		go func() {
-			t := time.NewTimer(interval)
+			t := time.NewTicker(interval)
 			defer t.Stop()
 			for {
 				select {
