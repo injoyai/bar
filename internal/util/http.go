@@ -33,6 +33,14 @@ type Client struct {
 	*http.Client
 }
 
+func (this *Client) SetKeepAlive(k ...bool) *Client {
+	tr, ok := this.Client.Transport.(*http.Transport)
+	if ok {
+		tr.DisableKeepAlives = len(k) > 0 && !k[0]
+	}
+	return this
+}
+
 // SetProxy 设置代理
 func (this *Client) SetProxy(u string) error {
 	if transport, ok := this.Client.Transport.(*http.Transport); ok {
@@ -95,6 +103,8 @@ func (this *Client) GetToFile(url string, filename string) (int64, error) {
 		return n, err
 	}
 	w.Close()
+
+	// 等待文件写入完成,否则有可能会报错
 	<-time.After(time.Millisecond * 100)
 	return n, os.Rename(filename+".downloading", filename)
 }

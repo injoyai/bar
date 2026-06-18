@@ -18,9 +18,8 @@ func main() {
 	for range 100 {
 		go func() {
 			for {
-				time.Sleep(time.Millisecond * 100)
-				x.Add(1)
-				if x.Flush() {
+				time.Sleep(time.Millisecond * 10)
+				if x.Add(1).Flush().Closed() {
 					break
 				}
 			}

@@ -12,7 +12,7 @@ func main() {
 		bar.WithTotal(100),
 		bar.WithFlush(),
 		bar.WithFinal(func(b *bar.Bar) {
-			fmt.Printf("\r\033[92m✓ 系统引导完毕！\033[0m\n")
+			fmt.Printf("\n\r\033[92m✓ 系统引导完毕！\033[0m\n")
 		}),
 	)
 	for i := 0; i < 100; i++ {

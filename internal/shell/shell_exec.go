@@ -2,12 +2,12 @@ package shell
 
 import (
 	"bytes"
-	"golang.org/x/text/encoding/simplifiedchinese"
-	"golang.org/x/text/transform"
 	"io"
 	"os/exec"
 	"runtime"
-	"unsafe"
+
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 )
 
 var (
@@ -79,14 +79,16 @@ type Result struct {
 
 func (this *Result) String() string {
 	if this.str == nil {
+		// 优先尝试解码（如 GBK -> UTF-8）；解码失败再回退到原始内容
 		if this.decode != nil {
-			bs, err := this.decode(this.buf.Bytes())
-			if err == nil {
-				this.str = (*string)(unsafe.Pointer(&bs))
-				return *this.str
+			if bs, err := this.decode(this.buf.Bytes()); err == nil {
+				s := string(bs)
+				this.str = &s
+				return s
 			}
 		}
-		this.str = (*string)(unsafe.Pointer(this.buf))
+		s := this.buf.String()
+		this.str = &s
 	}
 	return *this.str
 }

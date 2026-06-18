@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/injoyai/bar/internal/m3u8"
 	"github.com/injoyai/bar/internal/util"
@@ -52,15 +53,16 @@ func DownloadHLS(source, dir string, op ...HLSOption) error {
 		),
 	)
 
-	h := util.NewClient().SetTimeout(0)
+	h := util.NewClient().SetTimeout(0).SetKeepAlive()
 	if err := h.SetProxy(cfg.Proxy); err != nil {
 		return err
 	}
 
 	f := func(u string, n int64, log bool) {
-		atomic.AddInt64(&index, 1)
-		atomic.AddInt64(&current, n)
-		atomic.StoreInt64(&total, (current/index)*int64(len(ls)))
+		idx := atomic.AddInt64(&index, 1)
+		cur := atomic.AddInt64(&current, n)
+		// 用浮点数计算，避免整数除法精度丢失（如 cur=500, idx=1000 时整数除法结果为 0）
+		atomic.StoreInt64(&total, int64(float64(cur)/float64(idx)*float64(len(ls))))
 		if log {
 			b.Log(u)
 			b.Flush()
@@ -92,11 +94,12 @@ func DownloadHLS(source, dir string, op ...HLSOption) error {
 			}
 
 			var n int64
-			for x := 0; x == 0 || x < cfg.Retry; x++ {
+			for x := 0; x < max(1, cfg.Retry); x++ {
 				n, err = h.GetToFile(u, filename)
 				if err == nil {
 					break
 				}
+				<-time.After(time.Second * 5)
 			}
 			if err != nil {
 				b.Log("[错误]", err)

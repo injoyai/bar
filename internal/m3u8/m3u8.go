@@ -3,22 +3,37 @@ package m3u8
 import (
 	"errors"
 	"fmt"
-	"github.com/grafov/m3u8"
-	"github.com/injoyai/bar/internal/shell"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"github.com/grafov/m3u8"
+	"github.com/injoyai/bar/internal/shell"
 )
+
+// defaultClient 用于下载 m3u8 索引文件，设置合理超时避免无限阻塞
+var defaultClient = &http.Client{Timeout: 30 * time.Second}
 
 func Decode(url string) ([]string, error) {
 
+	// 校验 URL 必须含 "/"，否则后续 baseURL 拼接会出错
+	idx := strings.LastIndex(url, "/")
+	if idx < 0 {
+		return nil, errors.New("无效的 m3u8 url: " + url)
+	}
+
 	// 下载 m3u8 文件
-	resp, err := http.Get(url)
+	resp, err := defaultClient.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("m3u8 下载失败, status=%d", resp.StatusCode)
+	}
 
 	playlist, listType, err := m3u8.DecodeFrom(resp.Body, true)
 	if err != nil {
@@ -31,7 +46,7 @@ func Decode(url string) ([]string, error) {
 
 	media := playlist.(*m3u8.MediaPlaylist)
 
-	baseURL := url[:strings.LastIndex(url, "/")+1]
+	baseURL := url[:idx+1]
 
 	ls := make([]string, 0, len(media.Segments))
 

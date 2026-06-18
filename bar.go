@@ -1,7 +1,6 @@
 package bar
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -106,6 +105,16 @@ func WithFinal(f Option) Option {
 	}
 }
 
+func WithFinalLn() Option {
+	return func(b *Bar) {
+		b.OnFinal(func(b *Bar) {
+			if b.writer != nil {
+				b.writer.Write([]byte("\n"))
+			}
+		})
+	}
+}
+
 // WithAutoFlush 设置后自动刷新
 func WithAutoFlush() Option {
 	return func(b *Bar) {
@@ -150,14 +159,12 @@ func New(op ...Option) *Bar {
 		Closer:      safe.NewCloser(),
 	}
 	b.SetCloseFunc(func(err error) error {
-		if b.writer != nil {
-			b.writer.Write([]byte("\n"))
-		}
 		if b.onFinal != nil {
 			b.onFinal(b)
 		}
 		return nil
 	})
+	WithFinalLn()(b)
 	WithFormatDefault()(b)
 	for _, v := range op {
 		v(b)
@@ -173,7 +180,7 @@ type Bar struct {
 	format      Format         //格式化
 	formatSplit string         //分隔符
 	writer      io.Writer      //输出
-	onSet       []func(b *Bar) //设置事件
+	onChange    []func(b *Bar) //设置事件
 	onFinal     func(b *Bar)   //完成事件
 
 	startTime time.Time  //开始时间
@@ -184,7 +191,7 @@ type Bar struct {
 	*safe.Closer //closer
 }
 
-func (this *Bar) Add(n int64) {
+func (this *Bar) Add(n int64) *Bar {
 	this.mu.Lock()
 	this.current = this.current + n
 	if this.current > this.total {
@@ -194,18 +201,14 @@ func (this *Bar) Add(n int64) {
 	this.lastTime = time.Now()
 	this.mu.Unlock()
 
-	for _, f := range this.onSet {
-		if f != nil {
-			f(this)
-		}
-	}
+	return this.doOnchange()
 }
 
-func (this *Bar) Set(current int64) {
-	this.SetCurrent(current)
+func (this *Bar) Set(current int64) *Bar {
+	return this.SetCurrent(current)
 }
 
-func (this *Bar) SetCurrent(current int64) {
+func (this *Bar) SetCurrent(current int64) *Bar {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
@@ -216,11 +219,7 @@ func (this *Bar) SetCurrent(current int64) {
 	this.lastTime = time.Now()
 	this.current = current
 
-	for _, f := range this.onSet {
-		if f != nil {
-			f(this)
-		}
-	}
+	return this.doOnchange()
 }
 
 func (this *Bar) SetTotal(total int64) {
@@ -264,11 +263,24 @@ func (this *Bar) SetWriter(w io.Writer) {
 }
 
 func (this *Bar) OnSet(f func(b *Bar)) {
-	this.onSet = append(this.onSet, f)
+	this.onChange = append(this.onChange, f)
+}
+
+func (this *Bar) OnChange(f func(b *Bar)) {
+	this.onChange = append(this.onChange, f)
 }
 
 func (this *Bar) OnFinal(f Option) {
 	this.onFinal = f
+}
+
+func (this *Bar) doOnchange() *Bar {
+	for _, f := range this.onChange {
+		if f != nil {
+			f(this)
+		}
+	}
+	return this
 }
 
 /*
@@ -290,10 +302,11 @@ func (this *Bar) Total() int64 {
 }
 
 func (this *Bar) Rate() float64 {
-	if this.total == 0 {
+	total := this.total
+	if total == 0 {
 		return 0
 	}
-	return float64(this.current) / float64(this.total)
+	return float64(this.current) / float64(total)
 }
 
 func (this *Bar) StartTime() time.Time {
@@ -304,42 +317,45 @@ func (this *Bar) LastTime() time.Time {
 	return this.lastTime
 }
 
-func (this *Bar) Logf(format string, a ...any) {
+func (this *Bar) Logf(format string, a ...any) *Bar {
 	s := "\r\033[K" + fmt.Sprintf(format, a...)
 	if len(s) == 0 || s[len(s)-1] != '\n' {
 		s += "\n"
 	}
 	this.writer.Write([]byte(s))
+	return this.doOnchange()
 }
 
-func (this *Bar) Log(a ...any) {
+func (this *Bar) Log(a ...any) *Bar {
 	s := "\r\033[K" + fmt.Sprintln(a...)
 	this.writer.Write([]byte(s))
+	return this.doOnchange()
 }
 
-func (this *Bar) Flush() (closed bool) {
+func (this *Bar) Flush() *Bar {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 
-	if this.Closed() {
-		return true
+	if this.Closed() || this.writer == nil {
+		return this
 	}
-	if this.writer == nil {
-		return false
-	}
+
 	s := this.String()
-	if s == "" || s[0] != '\r' {
-		s = "\r\033[K" + s
-	}
 	this.writer.Write([]byte(s))
+
 	if this.current >= this.total {
 		this.Close()
 	}
-	return this.Closed()
+
+	return this
 }
 
 func (this *Bar) String() string {
-	return this.prefix + this.format(this) + this.suffix
+	s := this.prefix + this.format(this) + this.suffix
+	if s == "" || s[0] != '\r' {
+		s = "\r\033[K" + s
+	}
+	return s
 }
 
 /*
@@ -375,19 +391,8 @@ func (this *Bar) Copy(w io.Writer, r io.Reader) (int64, error) {
 }
 
 func (this *Bar) CopyN(w io.Writer, r io.Reader, bufSize int64) (int64, error) {
-	buff := bufio.NewReader(r)
-	reader := &Reader{
-		Reader: buff,
-		Bar:    this,
-	}
+	reader := &Reader{Reader: r, Bar: this}
 	return io.CopyN(w, reader, bufSize)
-}
-
-func NewReader(r io.Reader, b *Bar) *Reader {
-	return &Reader{
-		Reader: r,
-		Bar:    b,
-	}
 }
 
 type Reader struct {

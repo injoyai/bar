@@ -153,14 +153,14 @@ func WithSpeedUnitAvg() Format {
 // WithUsed 已经耗时,例 2m20s
 func WithUsed() Format {
 	return func(b *Bar) string {
-		return time.Now().Sub(b.StartTime()).String()
+		return time.Since(b.StartTime()).String()
 	}
 }
 
 // WithUsedSecond 已经耗时,例 600s
 func WithUsedSecond() Format {
 	return func(b *Bar) string {
-		return fmt.Sprintf("%0.1fs", time.Now().Sub(b.StartTime()).Seconds())
+		return fmt.Sprintf("%0.1fs", time.Since(b.StartTime()).Seconds())
 	}
 }
 
@@ -168,7 +168,7 @@ func WithUsedSecond() Format {
 func WithRemain() Format {
 	return func(b *Bar) string {
 		rate := float64(b.Current()) / float64(b.Total())
-		spend := time.Now().Sub(b.StartTime())
+		spend := time.Since(b.StartTime())
 		remain := "-"
 		if rate > 0 {
 			sub := time.Duration(float64(spend)/rate - float64(spend))
@@ -179,53 +179,83 @@ func WithRemain() Format {
 }
 
 // WithRemain2 预计剩余时间(根据最近的几个数据来计算) 例 1m18s
+// n: 滑动窗口大小（即"最近的几次写入"），不传则在首次采样时根据 Total 自适应到 [500,1000]
 func WithRemain2(n ...int) Format {
 	type node struct {
 		current int64
 		time    time.Time
 	}
-	mu := sync.Mutex{}
-	once := sync.Once{}
-	nodes := []*node(nil)
+
+	var (
+		mu       sync.Mutex
+		buf      []node // 环形缓冲区
+		head     int    // 队首下标（最旧）
+		size     int    // 当前元素数
+		capacity int    // 窗口容量，0 表示尚未初始化
+		hooked   bool   // 是否已注册 OnSet 回调，避免重复注册
+	)
+
+	// 初始化容量（懒加载，依赖首次调用时 Bar 的 Total）
+	initCap := func(b *Bar) {
+		if capacity > 0 {
+			return
+		}
+		_n := conv.Range(int(b.Total()/10), 500, 1000)
+		_n = conv.Default(_n, n...)
+		if _n <= 0 {
+			_n = 500
+		}
+		capacity = _n
+		buf = make([]node, capacity)
+	}
+
+	push := func(cur int64, t time.Time) {
+		// 写入环形缓冲区尾部
+		tail := (head + size) % capacity
+		buf[tail] = node{current: cur, time: t}
+		if size < capacity {
+			size++
+		} else {
+			// 已满，覆盖最旧元素，head 后移
+			head = (head + 1) % capacity
+		}
+	}
 
 	return func(b *Bar) string {
-		once.Do(func() {
-			_n := conv.Range(int(b.Total()/10), 500, 1000)
-			_n = conv.Default(_n, n...)
+		mu.Lock()
+		if !hooked {
+			initCap(b)
 			b.OnSet(func(b *Bar) {
 				mu.Lock()
 				defer mu.Unlock()
-				nodes = append(nodes, &node{
-					current: b.Current(),
-					time:    b.LastTime(),
-				})
-				if len(nodes) > _n {
-					nodes = nodes[1:]
-				}
+				push(b.Current(), b.LastTime())
 			})
-		})
-
-		remain := "-"
-
-		if len(nodes) == 0 {
-			return remain
+			hooked = true
 		}
 
-		mu.Lock()
-		start, end := nodes[0], nodes[len(nodes)-1]
+		if size == 0 {
+			mu.Unlock()
+			return "-"
+		}
+		start := buf[head]
+		end := buf[(head+size-1)%capacity]
 		mu.Unlock()
 
 		subCurrent := end.current - start.current
 		subTime := end.time.Sub(start.time)
 
-		if subCurrent > 0 {
-			avgSpeed := float64(subTime) / float64(subCurrent)            //平均速度
-			remainNumber := b.Total() - end.current                       //剩余数量
-			remainTime := time.Duration(float64(remainNumber) * avgSpeed) //剩余时间
-			remain = (remainTime - remainTime%time.Second).String()       //
+		// 需要同时满足：有数据进展 + 时间有流逝，避免除零或负值
+		if subCurrent <= 0 || subTime <= 0 {
+			return "-"
 		}
 
-		return remain
+		avgSpeed := float64(subTime) / float64(subCurrent) //平均耗时(每单位)
+		remainNumber := b.Total() - end.current            //剩余数量
+		if remainNumber <= 0 {
+			return "0s"
+		}
+		remainTime := time.Duration(float64(remainNumber) * avgSpeed) //剩余时间
+		return (remainTime - remainTime%time.Second).String()
 	}
 }
 
